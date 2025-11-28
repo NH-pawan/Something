@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Letter That Remembers — Dim</title>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+
+<!-- GSAP for animations -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+<style>
+:root{
+  --bg:#05020a;
+  --accent:#ff5b74;
+  --ink:#2b1b17;
+  --glass:rgba(255,255,255,0.05);
+  --glass-border:rgba(255,255,255,0.08);
+}
+
+html,body{margin:0;padding:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;background:var(--bg);}
+body{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:40px;box-sizing:border-box;overflow-x:hidden;}
+.card{display:flex;flex-direction:row;gap:24px;width:100%;max-width:980px;transition:all 0.5s ease;position:relative;z-index:1;}
+.left,.right{display:flex;flex-direction:column;}
+.left{flex:0 0 44%;align-items:center;position:relative;}
+.right{flex:1;padding:12px 0;justify-content:flex-start;}
+.env-container{width:100%;position:relative;cursor:pointer;display:flex;flex-direction:column;align-items:center;}
+.env{width:100%;aspect-ratio:4/3;position:relative;display:flex;justify-content:center;align-items:center;transition:all 0.5s ease;}
+.flap{position:absolute;top:8%;left:50%;transform:translateX(-50%);width:86%;height:50%;clip-path:polygon(50% 0,100% 100%,0 100%);background:#22131f;border-radius:8px;z-index:5;}
+.seal{position:absolute;top:28%;left:50%;transform:translateX(-50%);width:92px;height:92px;border-radius:50%;background:linear-gradient(180deg,#ff8aa0,#d24d61);display:flex;justify-content:center;align-items:center;font-size:34px;font-weight:700;color:#fff;z-index:10;user-select:none;}
+.paper{position:relative;width:88%;background:rgba(255,255,255,0.85);border-radius:16px;box-shadow:0 28px 60px rgba(0,0,0,0.36);padding:24px;overflow:hidden;max-height:0;transition:max-height 0.8s ease, padding 0.5s ease;}
+.paper.open{max-height:600px;padding:28px;}
+.handwrite{position:relative;font-family:'Playfair Display',serif;color:var(--ink);font-size:20px;line-height:1.7;white-space:pre-wrap;opacity:1;transform:translateY(20px);}
+.handwrite .line{margin-bottom:8px;display:block;opacity:1;transform:translateY(10px);}
+.right .title{font-family:'Playfair Display',serif;font-size:28px;margin-bottom:6px;}
+.right .subtitle{color:#e6dfe8;margin-bottom:14px;}
+.panel{background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(8px);border-radius:14px;padding:16px;}
+.lines .line em{color:var(--accent);font-weight:700;}
+.controls{display:flex;gap:10px;margin-top:14px;}
+.btn{padding:10px 14px;border-radius:12px;background:linear-gradient(90deg,var(--accent),#ff2d55);border:none;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s ease;}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#fff;}
+.ghost-hearts{position:absolute;inset:0;pointer-events:none;z-index:2;}
+footer{width:100%;text-align:center;margin-top:28px;color:rgba(255,255,255,0.3);font-size:12px;}
+@media(max-width:920px){.card{flex-direction:column;}.left,.right{width:100%;}}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="left">
+    <div class="env-container" id="envContainer" aria-label="Sealed letter for Dim" role="button" tabindex="0">
+      <div class="env">
+        <div class="flap"></div>
+        <div class="seal" id="seal">D</div>
+      </div>
+      <div class="paper" id="paper" aria-hidden="true">
+        <div class="handwrite" id="handwrite"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="title">For Dim</div>
+    <div class="subtitle">A letter that remembers — open with care.</div>
+    <div class="panel" aria-live="polite">
+      <div class="lines" id="lines">
+        <div class="line">If feelings had a <em>voice</em>, mine would whisper your name first.</div>
+        <div class="line">Tap or hold the seal — the letter will unfold <em>gently</em>.</div>
+      </div>
+      <div class="controls">
+        
+        
+        <button class="btn ghost" id="shareBtn">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ghost-hearts" id="ghosts"></div>
+</div>
+
+<footer>Made with care — Pawan → Dim</footer>
+
+<script>
+// Handwriting text
+const letterLines = [
+  "Dim,","",
+  "There were nights I let work, fear and silence speak louder than my love for you.",
+  "I am sorry for each time you felt small because I became distant.","",
+  "This page remembers the little things: the way your laugh hides, the way your hand finds mine, the comfort of your presence.","",
+  "You are my calm and my courage. I will not promise perfection. I promise presence, effort and to make our days kinder.","",
+  "I choose you — now, and forever."
+];
+
+const paper = document.getElementById('paper');
+const handwrite = document.getElementById('handwrite');
+const envContainer = document.getElementById('envContainer');
+const seal = document.getElementById('seal');
+const ghosts = document.getElementById('ghosts');
+const hearBtn = document.getElementById('hearBtn');
+const replayBtn = document.getElementById('replayBtn');
+const shareBtn = document.getElementById('shareBtn');
+
+let opened = false;
+
+function buildHandwriting(){
+  handwrite.innerHTML = '';
+  letterLines.forEach(line=>{
+    const div = document.createElement('div');
+    div.className='line';
+    div.textContent = line;
+    handwrite.appendChild(div);
+  });
+}
+
+// Hearts animation
+function spawnHeart(x,y){
+  const heart = document.createElement('div');
+  heart.style.position='absolute';
+  heart.style.left = x+'px';
+  heart.style.top = y+'px';
+  heart.style.transform='translate(-50%,-50%)';
+  heart.style.fontSize='14px';
+  heart.style.color='red';
+  heart.textContent='❤';
+  ghosts.appendChild(heart);
+  gsap.to(heart,{y:y-120,opacity:0,scale:1.2,duration:1.8,ease:'power2.out',onComplete:()=>heart.remove()});
+}
+
+function openLetter(){
+  if(opened) return;
+  opened=true;
+  buildHandwriting();
+  paper.classList.add('open');
+  const lines = handwrite.querySelectorAll('.line');
+  lines.forEach((l,i)=>{
+    gsap.to(l,{opacity:1,y:0,duration:0.9,delay:i*0.2,ease:'power3.out'});
+  });
+  // hearts
+  setTimeout(()=>{for(let i=0;i<5;i++){spawnHeart(window.innerWidth*0.5 + Math.random()*200-100, window.innerHeight*0.5 + Math.random()*100-50);}},700);
+}
+
+envContainer.addEventListener('click',openLetter);
+
+// Hear button
+hearBtn.addEventListener('click',()=>{
+  if(!('speechSynthesis' in window)){alert('Voice not supported here.');return;}
+  const utter = new SpeechSynthesisUtterance(letterLines.join('\n'));
+  utter.rate=0.95; utter.pitch=1; utter.lang='en-US';
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+  gsap.fromTo(hearBtn,{scale:1},{scale:1.05,duration:0.2,yoyo:true,repeat:1});
+});
+
+// Replay
+replayBtn.addEventListener('click',()=>{
+  opened=false;
+  paper.classList.remove('open');
+  handwrite.innerHTML='';
+  setTimeout(openLetter,300);
+});
+
+// Share
+shareBtn.addEventListener('click',()=>{
+  navigator.clipboard.writeText(letterLines.join('\n'));
+  alert('Letter text copied ❤️');
+});
+</script>
+</body>
+</html>
